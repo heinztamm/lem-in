@@ -1,25 +1,27 @@
 package playground
 
-type Room struct {
-	RoomName               any
-	Next                   *Room
-	ConnectedRoomAddresses []*Room
-	IsChecked              bool
+type AntFarm struct {
+	PossiblePaths [][]Room // keys for the map of all room names, filled in order of following a path
+	AllRoomsMap   map[string]Room
+	StartRoom     StartRoom
+	EndRoom       EndRoom
+	TunnelGraph   Graph
+	AntNr         int
 }
-
-type Path struct {
-	Head   *Room
-	Tail   *Room
-	Length int
+type Room struct {
+	RoomName  string
+	IsChecked bool
 }
 
 type StartRoom struct {
-	RoomName any
-	Next     *Room
+	RoomName string
+	AntCount int
 }
 
 type EndRoom struct {
-	RoomName any
+	RoomName string
+	AntCount int
 }
 
-type Graph map[any][]any
+// can the graph type be changed to accommodate a boolean value as well? meaning, the value would be ([]string, bool)
+type Graph map[string][]Room

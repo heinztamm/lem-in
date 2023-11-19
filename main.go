@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"01.kood.tech/git/kartamm/lem-in/playground"
@@ -9,6 +10,9 @@ import (
 func main() {
 
 	examplefilepath := os.Args[1]
-
-	playground.CreateGraph(examplefilepath)
+	antFarm := &playground.AntFarm{}
+	playground.FetchParams(examplefilepath, antFarm)
+	for _, path := range playground.FindValidPaths(antFarm) {
+		fmt.Println(path)
+	}
 }
