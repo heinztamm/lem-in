@@ -34,6 +34,10 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 		} else if !skip && strings.Contains(line, "##end") {
 			skip = true
 			antFarm.EndRoom.RoomName = strings.Split(lines[i+1], " ")[0]
+			antFarm.AllRoomsMap[strings.Split(lines[i+1], " ")[0]] = Room{
+				RoomName:  strings.Split(lines[i+1], " ")[0],
+				IsChecked: false,
+			}
 		} else if strings.Contains(line, "-") {
 			skip = false
 			fromRoomWithName := strings.Split(line, "-")[0]

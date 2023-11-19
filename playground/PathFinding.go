@@ -1,6 +1,9 @@
 package playground
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 // Determine a valid path through the farm, if one exists, and return it as a slice of room names
 // in order of visiting
@@ -14,7 +17,7 @@ func FindValidPaths(antFarm *AntFarm) [][]Room {
 	for _, cncRoom := range antFarm.TunnelGraph[antFarm.StartRoom.RoomName] {
 		antFarm.AllRoomsMap[cncRoom.RoomName] = Room{
 			RoomName:  cncRoom.RoomName,
-			IsChecked: true,
+			IsChecked: false,
 		}
 		antFarm.PossiblePaths = append(antFarm.PossiblePaths, []Room{antFarm.AllRoomsMap[cncRoom.RoomName]})
 	}
@@ -23,26 +26,23 @@ func FindValidPaths(antFarm *AntFarm) [][]Room {
 	var validPaths [][]Room
 	count := 0
 	if len(antFarm.PossiblePaths) > 0 {
-		ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, antFarm.PossiblePaths)
+		ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, antFarm.PossiblePaths, validPaths)
+		ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, antFarm.PossiblePaths, validPaths)
+		ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, antFarm.PossiblePaths, validPaths)
+
 		count++
+
 		// proceed until there are no rooms connected to the starting room still unchecked (not included in a determinedly valid path)
-
-		// TODO: write the above logic here
-
-		// TODO: change below for loop logic to allow appending multiple paths / nest it in another loop
 		for HasPossiblePathLeft(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.StartRoom.RoomName) {
 			for !ValidPathFound(antFarm.PossiblePaths, antFarm.EndRoom.RoomName) {
 
-				ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, antFarm.PossiblePaths)
+				ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, antFarm.PossiblePaths, validPaths)
 
 				count++
-				if chosenPath == nil {
-					fmt.Println("Dead end?!")
-					break
-				}
-				if count > 35 {
+				if count > 25 {
+					fmt.Println(antFarm.AllRoomsMap)
 					fmt.Println("Failurre")
-					break
+					os.Exit(1)
 				}
 			}
 			validPaths = append(validPaths, chosenPath)
@@ -57,9 +57,13 @@ func FindValidPaths(antFarm *AntFarm) [][]Room {
 }
 
 // Go through possible paths, adding them to a slice of possible path slices, that is finally returned in FindValidPaths()
-func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]Room, endRoomName string, possiblePaths [][]Room) {
+func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]Room, endRoomName string, possiblePaths, validPaths [][]Room) {
 	// chosenPath := []Room{}
 	for i, path := range possiblePaths {
+		if len(path) == 1 {
+			path[0].IsChecked = true
+			allRoomsMap[path[0].RoomName] = path[0]
+		}
 		currentMoveRoom := path[len(path)-1]
 		_, exists := tunnelGraph[currentMoveRoom.RoomName]
 		if exists {
@@ -72,7 +76,7 @@ func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]Room, endRoomName str
 						}
 					}
 					// If the room has more than one unchecked connected room, an alternative possible path is appended
-					altPath := append(path, connectedRoom)
+					altPath := append(path, allRoomsMap[connectedRoom.RoomName])
 					possiblePaths = append(possiblePaths, altPath)
 				} else if !(allRoomsMap[connectedRoom.RoomName].IsChecked) {
 					fmt.Println("Moving...")
@@ -84,13 +88,14 @@ func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]Room, endRoomName str
 						}
 					} else {
 						possiblePaths[i] = append(possiblePaths[i], allRoomsMap[connectedRoom.RoomName])
-						possiblePaths = append(possiblePaths[:i], possiblePaths[i+1:]...)
-						UnCheckLeftOverRooms(allRoomsMap, possiblePaths)
+						validPaths = append(validPaths, possiblePaths[i])
+						leftoverPaths := append(possiblePaths[:i], possiblePaths[i+1:]...)
+						UnCheckLeftOverRooms(allRoomsMap, leftoverPaths)
 						return
 					}
 					possiblePaths[i] = append(possiblePaths[i], allRoomsMap[connectedRoom.RoomName])
 					// fmt.Println(possiblePaths[i])
-					fmt.Println(allRoomsMap[connectedRoom.RoomName])
+					// fmt.Println(allRoomsMap[connectedRoom.RoomName])
 					// chosenPath = possiblePaths[i]
 				}
 			}
@@ -118,8 +123,8 @@ func UnCheckLeftOverRooms(allRoomsMap map[string]Room, leftOverPaths [][]Room) {
 	}
 }
 
-func ValidPathFound(leftOverPaths [][]Room, endRoomName string) bool {
-	for _, path := range leftOverPaths {
+func ValidPathFound(possiblePaths [][]Room, endRoomName string) bool {
+	for _, path := range possiblePaths {
 		if path[len(path)-1].RoomName == endRoomName {
 			return true
 		}
