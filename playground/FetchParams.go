@@ -31,6 +31,10 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 		if !skip && strings.Contains(line, "##start") {
 			skip = true
 			antFarm.StartRoom.RoomName = strings.Split(lines[i+1], " ")[0]
+			antFarm.AllRoomsMap[antFarm.StartRoom.RoomName] = Room{
+				RoomName:  antFarm.StartRoom.RoomName,
+				IsChecked: true,
+			}
 		} else if !skip && strings.Contains(line, "##end") {
 			skip = true
 			antFarm.EndRoom.RoomName = strings.Split(lines[i+1], " ")[0]
@@ -40,12 +44,16 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 			}
 		} else if strings.Contains(line, "-") {
 			skip = false
-			fromRoomWithName := strings.Split(line, "-")[0]
+
+			fromRoom := Room{
+				RoomName:  strings.Split(line, "-")[0],
+				IsChecked: false,
+			}
 			toRoom := Room{
 				RoomName:  strings.Split(line, "-")[1],
 				IsChecked: false,
 			}
-			tunnelGraph.addDirectedEdge(fromRoomWithName, toRoom)
+			tunnelGraph.addEdge(fromRoom, toRoom)
 		} else if !skip && i != 0 && !strings.Contains(line, "-") {
 			antFarm.AllRoomsMap[strings.Split(lines[i], " ")[0]] = Room{
 				RoomName:  strings.Split(lines[i], " ")[0],
@@ -56,7 +64,6 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 			skip = false
 		}
 	}
-
 	antFarm.TunnelGraph = tunnelGraph
 	antFarm.AntNr, err = strconv.Atoi(lines[0])
 	if err != nil {

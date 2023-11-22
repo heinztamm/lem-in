@@ -1,15 +1,7 @@
 package playground
 
-import "fmt"
-
 // addEdge adds a directed edge from node1 to node2
-func (g Graph) addDirectedEdge(node1Name string, node2 Room) {
-	g[node1Name] = append(g[node1Name], node2)
-}
-
-// printGraph prints the adjacency list representation of the graph
-func (g Graph) PrintGraph() {
-	for node, neighbors := range g {
-		fmt.Printf("%s: %v\n", node, neighbors)
-	}
+func (g Graph) addEdge(node1, node2 Room) {
+	g[node1.RoomName] = append(g[node1.RoomName], node2.RoomName)
+	g[node2.RoomName] = append(g[node2.RoomName], node1.RoomName)
 }

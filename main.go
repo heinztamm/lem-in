@@ -12,6 +12,7 @@ func main() {
 	examplefilepath := os.Args[1]
 	antFarm := &playground.AntFarm{}
 	playground.FetchParams(examplefilepath, antFarm)
+
 	for _, path := range playground.FindValidPaths(antFarm) {
 		fmt.Println(path)
 	}
