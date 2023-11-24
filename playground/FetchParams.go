@@ -22,7 +22,7 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 	var lines []string
 	tunnelGraph := make(Graph)
 	var skip bool
-	antFarm.AllRoomsMap = make(map[string]Room)
+	antFarm.AllRoomsMap = make(map[string]bool)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
@@ -31,17 +31,11 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 		if !skip && strings.Contains(line, "##start") {
 			skip = true
 			antFarm.StartRoom.RoomName = strings.Split(lines[i+1], " ")[0]
-			antFarm.AllRoomsMap[antFarm.StartRoom.RoomName] = Room{
-				RoomName:  antFarm.StartRoom.RoomName,
-				IsChecked: true,
-			}
+			antFarm.AllRoomsMap[antFarm.StartRoom.RoomName] = true
 		} else if !skip && strings.Contains(line, "##end") {
 			skip = true
 			antFarm.EndRoom.RoomName = strings.Split(lines[i+1], " ")[0]
-			antFarm.AllRoomsMap[strings.Split(lines[i+1], " ")[0]] = Room{
-				RoomName:  strings.Split(lines[i+1], " ")[0],
-				IsChecked: false,
-			}
+			antFarm.AllRoomsMap[strings.Split(lines[i+1], " ")[0]] = false
 		} else if strings.Contains(line, "-") {
 			skip = false
 
@@ -55,10 +49,7 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 			}
 			tunnelGraph.addEdge(fromRoom, toRoom)
 		} else if !skip && i != 0 && !strings.Contains(line, "-") {
-			antFarm.AllRoomsMap[strings.Split(lines[i], " ")[0]] = Room{
-				RoomName:  strings.Split(lines[i], " ")[0],
-				IsChecked: false,
-			}
+			antFarm.AllRoomsMap[strings.Split(lines[i], " ")[0]] = false
 			skip = false
 		} else {
 			skip = false

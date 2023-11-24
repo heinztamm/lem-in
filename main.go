@@ -13,7 +13,7 @@ func main() {
 	antFarm := &playground.AntFarm{}
 	playground.FetchParams(examplefilepath, antFarm)
 
-	for _, path := range playground.FindValidPaths(antFarm) {
+	for _, path := range playground.FindSetsOfValidPaths(antFarm) {
 		fmt.Println(path)
 	}
 }

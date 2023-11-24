@@ -5,72 +5,54 @@ import (
 	"os"
 )
 
-// Determine a valid path through the farm, if one exists, and return it as a slice of room names
-// in order of visiting
-func FindValidPaths(antFarm *AntFarm) [][]Room {
+func SelectSliceOfValidPaths(validPaths3D [][][]string) [][]string {
+
+	return [][]string{}
+}
+
+func FindSetsOfValidPaths(antFarm *AntFarm) [][][]string {
 	// fmt.Println(ScanPath(antFarm.TunnelGraph, antFarm.RoomNames, antFarm.StartRoom.RoomName, antFarm.EndRoom.RoomName))
 	_, exists := antFarm.TunnelGraph[antFarm.StartRoom.RoomName]
 	if !exists {
 		return nil
 	}
-	antFarm.AllRoomsMap[antFarm.StartRoom.RoomName] = Room{
-		RoomName:  antFarm.StartRoom.RoomName,
-		IsChecked: true,
-	}
+	masterIndex := 0
+	antFarm.AllRoomsMap[antFarm.StartRoom.RoomName] = true
 	for _, cncRoomName := range antFarm.TunnelGraph[antFarm.StartRoom.RoomName] {
-		antFarm.AllRoomsMap[cncRoomName] = Room{
-			RoomName:  cncRoomName,
-			IsChecked: false,
-		}
-		antFarm.PossiblePaths = append(antFarm.PossiblePaths, []Room{antFarm.AllRoomsMap[cncRoomName]})
+		antFarm.AllRoomsMap[cncRoomName] = false
+		antFarm.PossiblePaths = append(antFarm.PossiblePaths, []string{cncRoomName})
 	}
 
-	count := 0
 	if len(antFarm.PossiblePaths) > 0 {
-
-		count++
-
-		// proceed until there are no rooms connected to the starting room still unchecked (not included in a determinedly valid path)
-		for HasPossiblePathLeft(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.StartRoom) {
-
-			// TODO: change this to something that works. Issue: allRoomsMap's values falsely set to false after valid paths are found and saved
-			for !ValidPathFound(&antFarm.ValidPaths, antFarm.PossiblePaths, antFarm.EndRoom.RoomName) {
-				ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, &antFarm.PossiblePaths, &antFarm.ValidPaths)
-				count++
-				if count > 5 {
-					fmt.Println("Nr of ScanForPath calls: ", count)
-					fmt.Println("Failurre")
-					os.Exit(1)
-				}
-			}
-			// fmt.Println(antFarm.AllRoomsMap)
-			// os.Exit(1)
+		for !AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap) {
+			ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, &antFarm.PossiblePaths, &antFarm.ValidPaths3D, masterIndex)
 		}
-		fmt.Println(antFarm.PossiblePaths)
 	} else {
 		fmt.Println("No possible paths")
 		return nil
 	}
-	return antFarm.ValidPaths
+	return antFarm.ValidPaths3D
 }
 
 // Go through possible paths, adding them to a slice of possible path slices, that is finally returned in FindValidPaths()
-func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]Room, endRoomName string, possiblePaths *[][]Room, validPaths *[][]Room) {
+func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]bool, endRoomName string, possiblePaths *[][]string, validPaths3D *[][][]string, masterIndex int) {
 	fmt.Println("x")
 	Paths := *possiblePaths
+	valPaths3DCopy := *validPaths3D
 	for i, path := range Paths {
 		if len(path) == 1 {
-			path[0].IsChecked = true
-			allRoomsMap[path[0].RoomName] = path[0]
+			allRoomsMap[path[0]] = true
 		}
-		currentMoveRoom := path[len(path)-1]
-		if currentMoveRoom.RoomName == endRoomName {
+		currentMoveRoomName := path[len(path)-1]
+		if currentMoveRoomName == endRoomName {
 			// !! Something else to do here? !!
-			return
+			valPaths3DCopy[masterIndex] = append(valPaths3DCopy[masterIndex], path)
+			*validPaths3D = valPaths3DCopy
+			continue
 		}
-		_, exists := tunnelGraph[currentMoveRoom.RoomName]
+		_, exists := tunnelGraph[currentMoveRoomName]
 		nrOfConnections := 0
-		connectedRoomNames := tunnelGraph[currentMoveRoom.RoomName]
+		connectedRoomNames := tunnelGraph[currentMoveRoomName]
 		if exists {
 			nrOfConnections = len(connectedRoomNames)
 		} else if !SomewhereToGo(connectedRoomNames, allRoomsMap) {
@@ -83,12 +65,9 @@ func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]Room, endRoomName str
 		if nrOfConnections == 2 {
 			unvisited := ReturnUnvisited(connectedRoomNames, allRoomsMap)
 			for _, connectedRoomName := range unvisited {
-				fmt.Println("Moving from", currentMoveRoom.RoomName, "to... ", connectedRoomName)
+				fmt.Println("Moving from", currentMoveRoomName, "to... ", connectedRoomName)
 				if connectedRoomName != endRoomName {
-					allRoomsMap[connectedRoomName] = Room{
-						RoomName:  connectedRoomName,
-						IsChecked: true,
-					}
+					allRoomsMap[connectedRoomName] = true
 					// append room's name to corresponding subslice of possiblePaths
 					fmt.Println("Appending", allRoomsMap[connectedRoomName], "to", path)
 					Paths[i] = append(Paths[i], allRoomsMap[connectedRoomName])
@@ -111,10 +90,7 @@ func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]Room, endRoomName str
 			unvisited := ReturnUnvisited(connectedRoomNames, allRoomsMap)
 			for l := len(unvisited) - 1; l >= 0; l-- {
 				fmt.Println("Moving from", currentMoveRoom.RoomName, "to... ", unvisited[l])
-				allRoomsMap[unvisited[l]] = Room{
-					RoomName:  unvisited[l],
-					IsChecked: true,
-				}
+				allRoomsMap[unvisited[l]] = false
 				if l > 0 {
 					fmt.Println("Appending", allRoomsMap[unvisited[l]], "to", path)
 					altPath := append(Paths[i], allRoomsMap[unvisited[l]])
@@ -185,19 +161,31 @@ func RoomSelection(sourceRoomName string, MouthRoomNames []string, tunnelGraph G
 	return selectedRoom
 }
 
-func SomewhereToGo(connectedRoomNames []string, allRoomsMap map[string]Room) bool {
+func SomewhereToGo(connectedRoomNames []string, allRoomsMap map[string]bool) bool {
 	for _, roomName := range connectedRoomNames {
-		if !allRoomsMap[roomName].IsChecked {
+		// allRoomsMap[roomName] == false if room is unvisited
+		if !allRoomsMap[roomName] {
 			return true
 		}
 	}
 	return false
 }
 
-func ReturnUnvisited(connectedRoomNames []string, allRoomsMap map[string]Room) []string {
+func AllEndsAreDead(possiblePaths *[][]string, allRoomsMap map[string]bool) bool {
+	for _, path := range *possiblePaths {
+		for _, roomName := range path {
+			if !allRoomsMap[roomName] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func ReturnUnvisited(connectedRoomNames []string, allRoomsMap map[string]bool) []string {
 	unvisitedRooms := []string{}
 	for _, connectedRoomName := range connectedRoomNames {
-		if !allRoomsMap[connectedRoomName].IsChecked {
+		if !allRoomsMap[connectedRoomName] {
 			unvisitedRooms = append(unvisitedRooms, connectedRoomName)
 		}
 	}
