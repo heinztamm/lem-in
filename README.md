@@ -1,7 +1,7 @@
 # LEM-IN
 ## Karl Heinrich Tamm / kartamm
 
-This project is a digital version of an ant farm. The ant farm composes of tunnels and rooms. Ants need to find their way from the starting room to the end-room turn-by-turn (moving rooms every turn), with the caveat that each room can only accommodate only one ant at a time.
+This project is a digital version of an ant farm. The ant farm composes of tunnels and rooms. Ants need to find their way from the starting room to the end-room turn-by-turn (moving rooms every turn), with the caveat that each room can only accommodate one ant at a time.
 
 # Auditing
 
