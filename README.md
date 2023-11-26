@@ -3,6 +3,8 @@
 
 This project is a digital version of an ant farm. The ant farm composes of tunnels and rooms. Ants need to find their way from the starting room to the end-room turn-by-turn (moving rooms every turn), with the caveat that each room can only accommodate one ant at a time.
 
+A Thank-you for support and inspiration to Tomi Kivilo!
+
 # Auditing
 
 Exercise description here: [description](https://01.kood.tech/git/root/public/src/branch/master/subjects/lem-in)
@@ -23,8 +25,9 @@ beforehand
 or run commands manually  
 ```
 go run . <path-to-file>
-
+```
 as in:  
+```
   go run . example01.txt
 ```
 
