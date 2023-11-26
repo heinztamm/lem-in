@@ -3,6 +3,7 @@ package playground
 import (
 	"fmt"
 	"os"
+	"reflect"
 )
 
 func SelectSliceOfValidPaths(validPaths3D [][][]string) [][]string {
@@ -11,22 +12,58 @@ func SelectSliceOfValidPaths(validPaths3D [][][]string) [][]string {
 }
 
 func FindSetsOfValidPaths(antFarm *AntFarm) [][][]string {
-	// fmt.Println(ScanPath(antFarm.TunnelGraph, antFarm.RoomNames, antFarm.StartRoom.RoomName, antFarm.EndRoom.RoomName))
 	_, exists := antFarm.TunnelGraph[antFarm.StartRoom.RoomName]
 	if !exists {
 		return nil
 	}
-	masterIndex := 0
 	antFarm.AllRoomsMap[antFarm.StartRoom.RoomName] = true
+	masterIndex := 0
+	pathRepeat := false
+	antFarm.ValidPaths3D = make([][][]string, 0)
 	for _, cncRoomName := range antFarm.TunnelGraph[antFarm.StartRoom.RoomName] {
-		antFarm.AllRoomsMap[cncRoomName] = false
+		antFarm.AllRoomsMap[cncRoomName] = true
 		antFarm.PossiblePaths = append(antFarm.PossiblePaths, []string{cncRoomName})
 	}
-
 	if len(antFarm.PossiblePaths) > 0 {
-		for !AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap) {
-			ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, &antFarm.PossiblePaths, &antFarm.ValidPaths3D, masterIndex)
+		for masterIndex < 2 {
+			for !AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap, antFarm.TunnelGraph, antFarm.EndRoom.RoomName) {
+				ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, &antFarm.PossiblePaths, &antFarm.ValidPaths3D, masterIndex)
+				if len(antFarm.ValidPaths3D) > 0 {
+					if len(antFarm.ValidPaths3D[masterIndex]) > 1 {
+						lastElIndex := len(antFarm.ValidPaths3D[masterIndex]) - 1
+						if sliceExists(antFarm.ValidPaths3D[masterIndex][:lastElIndex], antFarm.ValidPaths3D[masterIndex][lastElIndex]) {
+							antFarm.ValidPaths3D[masterIndex] = antFarm.ValidPaths3D[masterIndex][:lastElIndex]
+							pathRepeat = true
+							break
+						}
+					}
+				}
+			}
+			if pathRepeat {
+				break
+			}
+			if len(antFarm.PossiblePaths) == len(antFarm.ValidPaths3D[masterIndex]) {
+				break
+			}
+			RetraceValidPaths(antFarm.AllRoomsMap, &antFarm.ValidPaths3D, masterIndex)
+			// fmt.Println(AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap, antFarm.TunnelGraph, antFarm.EndRoom.RoomName))
+			masterIndex++
 		}
+		/*
+			repeat loop until the last and second to last validPaths slices (of the 2nd dimension in ValidPaths3D)
+			are equal with imported package reflect's DeepEqual() function.
+			This would mean that no new combination of valid paths was found
+			and the search can be concluded
+		*/
+		// mistake: comparing an element to itself
+		for !reflect.DeepEqual(antFarm.ValidPaths3D[len(antFarm.ValidPaths3D)-1], antFarm.ValidPaths3D[len(antFarm.ValidPaths3D)-1]) {
+			for !AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap, antFarm.TunnelGraph, antFarm.EndRoom.RoomName) {
+				ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, &antFarm.PossiblePaths, &antFarm.ValidPaths3D, masterIndex)
+			}
+			RetraceValidPaths(antFarm.AllRoomsMap, &antFarm.ValidPaths3D, masterIndex)
+			masterIndex++
+		}
+
 	} else {
 		fmt.Println("No possible paths")
 		return nil
@@ -36,7 +73,6 @@ func FindSetsOfValidPaths(antFarm *AntFarm) [][][]string {
 
 // Go through possible paths, adding them to a slice of possible path slices, that is finally returned in FindValidPaths()
 func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]bool, endRoomName string, possiblePaths *[][]string, validPaths3D *[][][]string, masterIndex int) {
-	fmt.Println("x")
 	Paths := *possiblePaths
 	valPaths3DCopy := *validPaths3D
 	for i, path := range Paths {
@@ -46,6 +82,8 @@ func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]bool, endRoomName str
 		currentMoveRoomName := path[len(path)-1]
 		if currentMoveRoomName == endRoomName {
 			// !! Something else to do here? !!
+			// !!  Potentially problematic spot. !!
+			valPaths3DCopy = append(valPaths3DCopy, [][]string{})
 			valPaths3DCopy[masterIndex] = append(valPaths3DCopy[masterIndex], path)
 			*validPaths3D = valPaths3DCopy
 			continue
@@ -65,48 +103,40 @@ func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]bool, endRoomName str
 		if nrOfConnections == 2 {
 			unvisited := ReturnUnvisited(connectedRoomNames, allRoomsMap)
 			for _, connectedRoomName := range unvisited {
-				fmt.Println("Moving from", currentMoveRoomName, "to... ", connectedRoomName)
+				// append room's name to corresponding subslice of possiblePaths
+				Paths[i] = append(Paths[i], connectedRoomName)
+				*possiblePaths = Paths
 				if connectedRoomName != endRoomName {
 					allRoomsMap[connectedRoomName] = true
-					// append room's name to corresponding subslice of possiblePaths
-					fmt.Println("Appending", allRoomsMap[connectedRoomName], "to", path)
-					Paths[i] = append(Paths[i], allRoomsMap[connectedRoomName])
-					*possiblePaths = Paths
 				} else {
-					Paths[i] = append(Paths[i], allRoomsMap[connectedRoomName])
-					*validPaths = append(*validPaths, Paths[i])
-					fmt.Println("Voila:", *validPaths)
-					UnCheckLeftOverRooms(allRoomsMap, validPaths)
-					// for k := range possiblePaths[len(*validPaths):] {
-					// 	if k != i {
-					// 		possiblePaths[k] = []Room{possiblePaths[k][0]}
-					// 	}
-					// }
-					return
+					if len(valPaths3DCopy) == masterIndex {
+						valPaths3DCopy = append(valPaths3DCopy, [][]string{})
+					}
+					valPaths3DCopy[masterIndex] = append(valPaths3DCopy[masterIndex], Paths[i])
+					*validPaths3D = valPaths3DCopy
 				}
+				break
 			}
 		} else if nrOfConnections > 2 {
 			// Alternative paths need to be added, all paths will be selected between later in the parent function FindValidPaths()
 			unvisited := ReturnUnvisited(connectedRoomNames, allRoomsMap)
-			for l := len(unvisited) - 1; l >= 0; l-- {
-				fmt.Println("Moving from", currentMoveRoom.RoomName, "to... ", unvisited[l])
-				allRoomsMap[unvisited[l]] = false
-				if l > 0 {
-					fmt.Println("Appending", allRoomsMap[unvisited[l]], "to", path)
-					altPath := append(Paths[i], allRoomsMap[unvisited[l]])
-					fmt.Println("altPath:", altPath)
-					Paths = append(Paths, altPath)
-					*possiblePaths = Paths
+			for _, connectedRoomName := range unvisited {
+				Paths[i] = append(Paths[i], connectedRoomName)
+				*possiblePaths = Paths
+				if connectedRoomName != endRoomName {
+					allRoomsMap[connectedRoomName] = true
 				} else {
-					fmt.Println("Appending", allRoomsMap[unvisited[l]], "to", path)
-					Paths[i] = append(Paths[i], allRoomsMap[unvisited[l]])
-					*possiblePaths = Paths
+					if len(valPaths3DCopy) == masterIndex {
+						valPaths3DCopy = append(valPaths3DCopy, [][]string{})
+					}
+					valPaths3DCopy[masterIndex] = append(valPaths3DCopy[masterIndex], Paths[i])
+					*validPaths3D = valPaths3DCopy
 				}
+				break
 			}
 		}
-
 	}
-	fmt.Println(*possiblePaths)
+	// fmt.Println(*possiblePaths)
 }
 
 func HasPossiblePathLeft(tunnelGraph Graph, allRoomsMap map[string]Room, startRoom Room) bool {
@@ -118,20 +148,21 @@ func HasPossiblePathLeft(tunnelGraph Graph, allRoomsMap map[string]Room, startRo
 	return false
 }
 
-// lower all flags of rooms not part of a valid path
-func UnCheckLeftOverRooms(allRoomsMap map[string]Room, validPaths *[][]Room) {
-	for _, path := range *validPaths {
-		// Populate the validRooms map for quick lookups
+// lower all flags of rooms part of a valid path
+func RetraceValidPaths(allRoomsMap map[string]bool, validPaths3D *[][][]string, masterIndex int) {
+	valPaths3DCopy := *validPaths3D
+	for _, path := range valPaths3DCopy[masterIndex] {
+		// Populate a validRooms map for quick lookups
 		validRooms := make(map[string]struct{})
-		for _, vRoom := range path {
-			validRooms[vRoom.RoomName] = struct{}{}
+		for _, vRoomName := range path {
+			validRooms[vRoomName] = struct{}{}
 		}
-
-		// uncheck all rooms not part of a valid path
-		for roomName, room := range allRoomsMap {
-			if _, isValid := validRooms[roomName]; !isValid {
-				room.IsChecked = false
-				allRoomsMap[roomName] = room
+		// uncheck all rooms part of a valid path
+		for roomName := range allRoomsMap {
+			if _, isValid := validRooms[roomName]; isValid {
+				allRoomsMap[roomName] = false
+			} else {
+				allRoomsMap[roomName] = true
 			}
 		}
 	}
@@ -171,11 +202,25 @@ func SomewhereToGo(connectedRoomNames []string, allRoomsMap map[string]bool) boo
 	return false
 }
 
-func AllEndsAreDead(possiblePaths *[][]string, allRoomsMap map[string]bool) bool {
+// Return true if all rooms the current last room in each path is connected to are set to 'true' in allRoomsMap (they have been visited)
+func AllEndsAreDead(possiblePaths *[][]string, allRoomsMap map[string]bool, tunnelGraph Graph, endRoomName string) bool {
+	// a check here, whether all possible paths end with endRoom? In which case, return true
+	allReachedEnd := true
+	for _, path := range *possiblePaths {
+		if path[len(path)-1] != endRoomName {
+			allReachedEnd = false
+		}
+	}
+	if allReachedEnd {
+		return true
+	}
 	for _, path := range *possiblePaths {
 		for _, roomName := range path {
-			if !allRoomsMap[roomName] {
-				return false
+			for _, connectedRoomName := range tunnelGraph[roomName] {
+				// fmt.Println(connectedRoomName, ":", allRoomsMap[connectedRoomName])
+				if !allRoomsMap[connectedRoomName] {
+					return false
+				}
 			}
 		}
 	}
@@ -190,4 +235,13 @@ func ReturnUnvisited(connectedRoomNames []string, allRoomsMap map[string]bool) [
 		}
 	}
 	return unvisitedRooms
+}
+
+func sliceExists(sliceOfSlices [][]string, targetSlice []string) bool {
+	for _, slice := range sliceOfSlices {
+		if reflect.DeepEqual(slice, targetSlice) {
+			return true
+		}
+	}
+	return false
 }

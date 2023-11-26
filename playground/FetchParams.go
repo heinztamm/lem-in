@@ -17,8 +17,6 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	// var startRoomName any
-	// var endRoomName any
 	var lines []string
 	tunnelGraph := make(Graph)
 	var skip bool
@@ -56,15 +54,17 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 		}
 	}
 	antFarm.TunnelGraph = tunnelGraph
+	if _, exists := tunnelGraph[antFarm.EndRoom.RoomName]; !exists {
+		fmt.Println("ERROR: invalid data format. No path between start and end room.")
+		os.Exit(1)
+	}
 	antFarm.AntNr, err = strconv.Atoi(lines[0])
+	if antFarm.AntNr < 1 {
+		fmt.Println("ERROR: invalid data format, invalid number of Ants")
+		os.Exit(1)
+	}
 	if err != nil {
 		fmt.Println("Number of ants could not be read from file: issue with format")
 		os.Exit(1)
 	}
-
-	// fmt.Println(antNr)
-	// fmt.Println()
-	// fmt.Println(startRoomName)
-	// fmt.Println(antFarm.EndRoom.RoomName)
-	// tunnelGraph.PrintGraph()
 }
