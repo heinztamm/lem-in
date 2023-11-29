@@ -36,13 +36,13 @@ read -n 1 -s
 
 clear
 echo ---------------badexample00.txt-----------------
-go run . validExamples/badexample00.txt
+go run . badExamples/badexample00.txt
 echo PRESS ANY KEY TO CONTINUE or ctrl-c to exit
 read -n 1 -s
 
 clear
 echo ---------------badexample01.txt-----------------
-go run . validExamples/badexample01.txt
+go run . badExamples/badexample01.txt
 echo PRESS ANY KEY TO CONTINUE or ctrl-c to exit
 read -n 1 -s
 
@@ -55,18 +55,6 @@ read -n 1 -s
 clear
 echo ---------------example07.txt-----------------
 go run . validExamples/example07.txt
-echo PRESS ANY KEY TO CONTINUE or ctrl-c to exit
-read -n 1 -s
-
-clear
-echo ---------------badexample00.txt-----------------
-go run . badExamples/badexample00.txt
-echo PRESS ANY KEY TO CONTINUE or ctrl-c to exit
-read -n 1 -s
-
-clear
-echo ---------------badexample01.txt-----------------
-go run . badExamples/badexample01.txt
 echo PRESS ANY KEY TO CONTINUE or ctrl-c to exit
 read -n 1 -s
 
