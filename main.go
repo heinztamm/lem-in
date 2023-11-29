@@ -16,7 +16,9 @@ func main() {
 	antFarm := &playground.AntFarm{}
 	playground.FetchParams(examplefilepath, antFarm)
 
-	setsOfPaths := playground.FindSetsOfValidPaths(antFarm)
-	chosenPaths := playground.ReturnLongest(setsOfPaths)
-	playground.Movement(antFarm.AntNr, antFarm.StartRoom.RoomName, antFarm.EndRoom.RoomName, chosenPaths)
+	// setsOfPaths := playground.FindSetsOfValidPaths(antFarm)
+	playground.FindSetsOfValidPaths(antFarm)
+	fmt.Println(antFarm.ValidPaths3D)
+	// chosenPaths := playground.ReturnLongest(setsOfPaths)
+	// playground.Movement(antFarm.AntNr, antFarm.StartRoom.RoomName, antFarm.EndRoom.RoomName, chosenPaths)
 }

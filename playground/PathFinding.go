@@ -18,6 +18,7 @@ func FindSetsOfValidPaths(antFarm *AntFarm) [][][]string {
 	}
 	antFarm.AllRoomsMap[antFarm.StartRoom.RoomName] = true
 	masterIndex := 0
+	counter := 0
 	pathRepeat := false
 	antFarm.ValidPaths3D = make([][][]string, 0)
 	for _, cncRoomName := range antFarm.TunnelGraph[antFarm.StartRoom.RoomName] {
@@ -28,25 +29,37 @@ func FindSetsOfValidPaths(antFarm *AntFarm) [][][]string {
 		for masterIndex < 2 {
 			for !AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap, antFarm.TunnelGraph, antFarm.EndRoom.RoomName) {
 				ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, &antFarm.PossiblePaths, &antFarm.ValidPaths3D, masterIndex)
+				fmt.Println(antFarm.PossiblePaths)
 				if len(antFarm.ValidPaths3D) > 0 {
 					if len(antFarm.ValidPaths3D[masterIndex]) > 1 {
 						lastElIndex := len(antFarm.ValidPaths3D[masterIndex]) - 1
-						if sliceExists(antFarm.ValidPaths3D[masterIndex][:lastElIndex], antFarm.ValidPaths3D[masterIndex][lastElIndex]) {
+						counter++
+						// fmt.Println(antFarm.ValidPaths3D)
+						if counter == 13 {
+							os.Exit(1)
+						}
+						if SliceExists(antFarm.ValidPaths3D[masterIndex][:lastElIndex], antFarm.ValidPaths3D[masterIndex][lastElIndex]) {
 							antFarm.ValidPaths3D[masterIndex] = antFarm.ValidPaths3D[masterIndex][:lastElIndex]
+							lastElIndex = len(antFarm.ValidPaths3D[masterIndex]) - 1
+							for SliceExists(antFarm.ValidPaths3D[masterIndex][:lastElIndex], antFarm.ValidPaths3D[masterIndex][lastElIndex]) {
+								antFarm.ValidPaths3D[masterIndex] = antFarm.ValidPaths3D[masterIndex][:lastElIndex]
+								lastElIndex = len(antFarm.ValidPaths3D[masterIndex]) - 1
+							}
 							pathRepeat = true
 							break
 						}
 					}
 				}
 			}
-			if pathRepeat {
+			RetraceValidPaths(antFarm.AllRoomsMap, &antFarm.ValidPaths3D, masterIndex, &antFarm.PossiblePaths)
+			// fmt.Println(antFarm.PossiblePaths)
+			if pathRepeat && AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap, antFarm.TunnelGraph, antFarm.EndRoom.RoomName) {
+				fmt.Println("pathrepeat")
 				break
 			}
-			if len(antFarm.PossiblePaths) == len(antFarm.ValidPaths3D[masterIndex]) {
-				break
-			}
-			RetraceValidPaths(antFarm.AllRoomsMap, &antFarm.ValidPaths3D, masterIndex)
-			// fmt.Println(AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap, antFarm.TunnelGraph, antFarm.EndRoom.RoomName))
+			// if len(antFarm.PossiblePaths) == len(antFarm.ValidPaths3D[masterIndex]) && AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap, antFarm.TunnelGraph, antFarm.EndRoom.RoomName) {
+			// 	break
+			// }
 			masterIndex++
 		}
 		/*
@@ -55,12 +68,25 @@ func FindSetsOfValidPaths(antFarm *AntFarm) [][][]string {
 			This would mean that no new combination of valid paths was found
 			and the search can be concluded
 		*/
-		// mistake: comparing an element to itself
-		for !reflect.DeepEqual(antFarm.ValidPaths3D[len(antFarm.ValidPaths3D)-1], antFarm.ValidPaths3D[len(antFarm.ValidPaths3D)-1]) {
+		// fmt.Println(antFarm.ValidPaths3D)
+		for !reflect.DeepEqual(antFarm.ValidPaths3D[len(antFarm.ValidPaths3D)-1], antFarm.ValidPaths3D[len(antFarm.ValidPaths3D)-2]) {
 			for !AllEndsAreDead(&antFarm.PossiblePaths, antFarm.AllRoomsMap, antFarm.TunnelGraph, antFarm.EndRoom.RoomName) {
 				ScanForPath(antFarm.TunnelGraph, antFarm.AllRoomsMap, antFarm.EndRoom.RoomName, &antFarm.PossiblePaths, &antFarm.ValidPaths3D, masterIndex)
+				if len(antFarm.ValidPaths3D) > 0 {
+					if len(antFarm.ValidPaths3D[masterIndex]) > 1 {
+						lastElIndex := len(antFarm.ValidPaths3D[masterIndex]) - 1
+						if SliceExists(antFarm.ValidPaths3D[masterIndex][:lastElIndex], antFarm.ValidPaths3D[masterIndex][lastElIndex]) {
+							fmt.Println("repeat:", antFarm.ValidPaths3D[masterIndex])
+							antFarm.ValidPaths3D[masterIndex] = antFarm.ValidPaths3D[masterIndex][:lastElIndex]
+							os.Exit(1)
+							pathRepeat = true
+							break
+						}
+					}
+				}
 			}
-			RetraceValidPaths(antFarm.AllRoomsMap, &antFarm.ValidPaths3D, masterIndex)
+			RetraceValidPaths(antFarm.AllRoomsMap, &antFarm.ValidPaths3D, masterIndex, &antFarm.PossiblePaths)
+			// fmt.Println(antFarm.PossiblePaths)
 			masterIndex++
 		}
 
@@ -83,8 +109,15 @@ func ScanForPath(tunnelGraph Graph, allRoomsMap map[string]bool, endRoomName str
 		if currentMoveRoomName == endRoomName {
 			// !! Something else to do here? !!
 			// !!  Potentially problematic spot. !!
-			valPaths3DCopy = append(valPaths3DCopy, [][]string{})
-			valPaths3DCopy[masterIndex] = append(valPaths3DCopy[masterIndex], path)
+			if !SliceExists(valPaths3DCopy[masterIndex], path) {
+				if len(valPaths3DCopy) != masterIndex+1 {
+					// fmt.Println(valPaths3DCopy, masterIndex)
+					valPaths3DCopy = append(valPaths3DCopy, [][]string{})
+				}
+				valPaths3DCopy[masterIndex] = append(valPaths3DCopy[masterIndex], path)
+			} else {
+				continue
+			}
 			*validPaths3D = valPaths3DCopy
 			continue
 		}
@@ -149,9 +182,17 @@ func HasPossiblePathLeft(tunnelGraph Graph, allRoomsMap map[string]Room, startRo
 }
 
 // lower all flags of rooms part of a valid path
-func RetraceValidPaths(allRoomsMap map[string]bool, validPaths3D *[][][]string, masterIndex int) {
+func RetraceValidPaths(allRoomsMap map[string]bool, validPaths3D *[][][]string, masterIndex int, possiblePaths *[][]string) {
 	valPaths3DCopy := *validPaths3D
+	possiblePathsCopy := *possiblePaths
+	fmt.Println("before: ", possiblePathsCopy)
 	for _, path := range valPaths3DCopy[masterIndex] {
+		for i := range possiblePathsCopy {
+			if reflect.DeepEqual(possiblePathsCopy[i], path) {
+				// fmt.Println(path)
+				possiblePathsCopy[i] = []string{possiblePathsCopy[i][0]}
+			}
+		}
 		// Populate a validRooms map for quick lookups
 		validRooms := make(map[string]struct{})
 		for _, vRoomName := range path {
@@ -161,11 +202,12 @@ func RetraceValidPaths(allRoomsMap map[string]bool, validPaths3D *[][][]string, 
 		for roomName := range allRoomsMap {
 			if _, isValid := validRooms[roomName]; isValid {
 				allRoomsMap[roomName] = false
-			} else {
-				allRoomsMap[roomName] = true
 			}
 		}
 	}
+	fmt.Println("after: ", possiblePathsCopy)
+	fmt.Println(allRoomsMap)
+	*possiblePaths = possiblePathsCopy
 }
 
 func ValidPathFound(validPaths *[][]Room, possiblePaths [][]Room, endRoomName string) bool {
@@ -237,7 +279,7 @@ func ReturnUnvisited(connectedRoomNames []string, allRoomsMap map[string]bool) [
 	return unvisitedRooms
 }
 
-func sliceExists(sliceOfSlices [][]string, targetSlice []string) bool {
+func SliceExists(sliceOfSlices [][]string, targetSlice []string) bool {
 	for _, slice := range sliceOfSlices {
 		if reflect.DeepEqual(slice, targetSlice) {
 			return true

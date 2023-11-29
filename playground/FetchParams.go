@@ -46,7 +46,7 @@ func FetchParams(examplefilepath string, antFarm *AntFarm) {
 				IsChecked: false,
 			}
 			tunnelGraph.addEdge(fromRoom, toRoom)
-		} else if !skip && i != 0 && !strings.Contains(line, "-") {
+		} else if !skip && i != 0 && !strings.Contains(line, "-") && strings.Contains(line, " ") {
 			antFarm.AllRoomsMap[strings.Split(lines[i], " ")[0]] = false
 			skip = false
 		} else {
